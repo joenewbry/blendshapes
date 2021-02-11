@@ -17,8 +17,8 @@ class ViewController: UIViewController, ARSessionDelegate {
     @IBOutlet weak var tabBar: UITabBar!
 
     // MARK: Properties
-
-    var contentControllers: [VirtualContentType: VirtualContentController] = [:]
+    
+    var faceAnchorsAndContentControllers: [ARFaceAnchor: VirtualContentController] = [:]
     
     var selectedVirtualContent: VirtualContentType! {
         didSet {
@@ -26,27 +26,22 @@ class ViewController: UIViewController, ARSessionDelegate {
                 else { return }
             
             // Remove existing content when switching types.
-            contentControllers[oldValue]?.contentNode?.removeFromParentNode()
+            for contentController in faceAnchorsAndContentControllers.values {
+                contentController.contentNode?.removeFromParentNode()
+            }
             
-            // If there's an anchor already (switching content), get the content controller to place initial content.
+            // If there are anchors already (switching content), create new controllers and generate updated content.
             // Otherwise, the content controller will place it in `renderer(_:didAdd:for:)`.
-            if let anchor = currentFaceAnchor, let node = sceneView.node(for: anchor),
-                let newContent = selectedContentController.renderer(sceneView, nodeFor: anchor) {
-                node.addChildNode(newContent)
+            for anchor in faceAnchorsAndContentControllers.keys {
+                let contentController = selectedVirtualContent.makeController()
+                if let node = sceneView.node(for: anchor),
+                let contentNode = contentController.renderer(sceneView, nodeFor: anchor) {
+                    node.addChildNode(contentNode)
+                    faceAnchorsAndContentControllers[anchor] = contentController
+                }
             }
         }
     }
-    var selectedContentController: VirtualContentController {
-        if let controller = contentControllers[selectedVirtualContent] {
-            return controller
-        } else {
-            let controller = selectedVirtualContent.makeController()
-            contentControllers[selectedVirtualContent] = controller
-            return controller
-        }
-    }
-    
-    var currentFaceAnchor: ARFaceAnchor?
     
     // MARK: - View Controller Life Cycle
 
@@ -95,8 +90,13 @@ class ViewController: UIViewController, ARSessionDelegate {
     func resetTracking() {
         guard ARFaceTrackingConfiguration.isSupported else { return }
         let configuration = ARFaceTrackingConfiguration()
+        if #available(iOS 13.0, *) {
+            configuration.maximumNumberOfTrackedFaces = ARFaceTrackingConfiguration.supportedNumberOfTrackedFaces
+        }
         configuration.isLightEstimationEnabled = true
         sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+        
+        faceAnchorsAndContentControllers.removeAll()
     }
     
     // MARK: - Error handling
@@ -110,6 +110,16 @@ class ViewController: UIViewController, ARSessionDelegate {
         }
         alertController.addAction(restartAction)
         present(alertController, animated: true, completion: nil)
+    }
+    
+    // Auto-hide the home indicator to maximize immersion in AR experiences.
+    override var prefersHomeIndicatorAutoHidden: Bool {
+        return true
+    }
+    
+    // Hide the status bar to maximize immersion in AR experiences.
+    override var prefersStatusBarHidden: Bool {
+        return true
     }
 }
 
@@ -125,23 +135,33 @@ extension ViewController: ARSCNViewDelegate {
         
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         guard let faceAnchor = anchor as? ARFaceAnchor else { return }
-        currentFaceAnchor = faceAnchor
         
         // If this is the first time with this anchor, get the controller to create content.
         // Otherwise (switching content), will change content when setting `selectedVirtualContent`.
-        if node.childNodes.isEmpty, let contentNode = selectedContentController.renderer(renderer, nodeFor: faceAnchor) {
-            node.addChildNode(contentNode)
+        DispatchQueue.main.async {
+            let contentController = self.selectedVirtualContent.makeController()
+            if node.childNodes.isEmpty, let contentNode = contentController.renderer(renderer, nodeFor: faceAnchor) {
+                node.addChildNode(contentNode)
+                self.faceAnchorsAndContentControllers[faceAnchor] = contentController
+            }
         }
     }
     
     /// - Tag: ARFaceGeometryUpdate
     func renderer(_ renderer: SCNSceneRenderer, didUpdate node: SCNNode, for anchor: ARAnchor) {
-        guard anchor == currentFaceAnchor,
-            let contentNode = selectedContentController.contentNode,
-            contentNode.parent == node
-            else { return }
+        guard let faceAnchor = anchor as? ARFaceAnchor,
+            let contentController = faceAnchorsAndContentControllers[faceAnchor],
+            let contentNode = contentController.contentNode else {
+            return
+        }
         
-        selectedContentController.renderer(renderer, didUpdate: contentNode, for: anchor)
+        contentController.renderer(renderer, didUpdate: contentNode, for: anchor)
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didRemove node: SCNNode, for anchor: ARAnchor) {
+        guard let faceAnchor = anchor as? ARFaceAnchor else { return }
+        
+        faceAnchorsAndContentControllers[faceAnchor] = nil
     }
 }
 

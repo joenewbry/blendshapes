@@ -16,17 +16,7 @@ Use the tab bar to switch between these modes.
 
 ![Screenshot of UI for choosing AR face modes](Documentation/FaceExampleModes.png)
 
-## Getting Started
-
-This sample code project requires:
-
-- An iOS device with front-facing TrueDepth camera:
-    - iPhone X, iPhone XS, iPhone XS Max, or iPhone XR.
-    - iPad Pro (11-inch) or iPad Pro (12.9-inch, 3rd generation).
-- iOS 11.0 or later.
-- Xcode 10.0 or later.
-
-ARKit is not available in iOS Simulator.
+- Important: Face tracking supports devices with Apple Neural Engine in iOS 14 and iPadOS 14 and requires a device with a TrueDepth camera on iOS 13 and iPadOS 13 and earlier. To run the sample app, set the run destination to an actual device; the Simulator doesn’t support augmented reality.
 
 ## Start a Face-Tracking Session in a SceneKit View
 
@@ -45,14 +35,13 @@ Face tracking differs from other uses of ARKit in the class you use to configure
 ``` swift
 guard ARFaceTrackingConfiguration.isSupported else { return }
 let configuration = ARFaceTrackingConfiguration()
+if #available(iOS 13.0, *) {
+    configuration.maximumNumberOfTrackedFaces = ARFaceTrackingConfiguration.supportedNumberOfTrackedFaces
+}
 configuration.isLightEstimationEnabled = true
 sceneView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
 ```
 [View in Source](x-source-tag://ARFaceTrackingSetup)
-
-Before offering features that require a face-tracking AR session, check the [`isSupported`][7] property on the [`ARFaceTrackingConfiguration`][5] class to determine whether the current device supports ARKit face tracking.
-
-[7]:https://developer.apple.com/documentation/arkit/arconfiguration/2923553-issupported
 
 ## Track the Position and Orientation of a Face
 

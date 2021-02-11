@@ -35,6 +35,10 @@ class FaceOcclusionOverlay: NSObject, VirtualContentController {
 
         // Add 3D asset positioned to appear as "glasses".
         let faceOverlayContent = SCNReferenceNode(named: "overlayModel")
+        
+        // Assign a random color to the text.
+        let material = SCNMaterial.materialWithColor(anchor.identifier.toRandomColor())
+        faceOverlayContent.childNode(withName: "text", recursively: true)?.geometry?.materials = [material]
 
         contentNode = SCNNode()
         contentNode!.addChildNode(occlusionNode)

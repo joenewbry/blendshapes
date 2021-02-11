@@ -43,3 +43,24 @@ extension SCNReferenceNode {
         }
     }
 }
+
+extension SCNMaterial {
+    static func materialWithColor(_ color: UIColor) -> SCNMaterial {
+        let material = SCNMaterial()
+        material.lightingModel = .physicallyBased
+        material.diffuse.contents = color
+        return material
+    }
+}
+
+extension UUID {
+    /**
+    Pseudo-randomly return one of the 14 fixed standard colors, based on this UUID.
+    */
+    func toRandomColor() -> UIColor {
+        let colors: [UIColor] = [.red, .green, .blue, .yellow, .magenta, .cyan, .purple,
+                                 .orange, .brown, .lightGray, .gray, .darkGray, .black, .white]
+        let randomNumber = abs(self.hashValue % colors.count)
+        return colors[randomNumber]
+    }
+}

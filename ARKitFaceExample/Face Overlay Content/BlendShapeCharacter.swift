@@ -30,6 +30,12 @@ class BlendShapeCharacter: NSObject, VirtualContentController {
 
         contentNode = SCNReferenceNode(named: "robotHead")
         originalJawY = jawNode.position.y
+        
+        // Assign a random color to the eyes.
+        let material = SCNMaterial.materialWithColor(anchor.identifier.toRandomColor())
+        contentNode?.childNode(withName: "eyeLeft", recursively: true)?.geometry?.materials = [material]
+        contentNode?.childNode(withName: "eyeRight", recursively: true)?.geometry?.materials = [material]
+        
         return contentNode
     }
     
