@@ -24,6 +24,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>The camera is used for augmenting reality</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>The microphone is used to record video data</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
